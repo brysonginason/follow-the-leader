@@ -88,19 +88,21 @@ follow-the-leader/
 
 ## Logging and Analysis
 
-	- Logging:
+- Logging:
     A dedicated logging module captures key simulation metrics (performance updates, imitation events, network properties) at each time step. Logs are stored in a designated directory (e.g., logs/) for later review.
 
-	- Post-Simulation Analysis:
+- Post-Simulation Analysis:
     Use Jupyter notebooks in the notebooks/ directory to visualize and analyze the data. These notebooks can help uncover patterns such as herding behavior, network clustering, and overall market efficiency.
 
 ## Future Enhancements
 
-	- Historical Data Integration:
+- Historical Data Integration:
     Incorporate real stock market data for benchmarking simulation outcomes.
-	- Enhanced Visualization:
+
+- Enhanced Visualization:
     Develop interactive dashboards to monitor simulation dynamics in real time.
-	- Scalability Improvements:
+    
+- Scalability Improvements:
     Optimize the simulation engine for larger networks and more complex scenarios, possibly exploring parallel processing options.
 
 ## Acknowledgments
