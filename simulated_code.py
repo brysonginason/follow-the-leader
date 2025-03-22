@@ -85,3 +85,54 @@ def copyingProbability(wealth, bm_vector, alpha=1, beta=1):
         probability_matrix[i, :] = probability_vec
     
     return probability_matrix
+
+def networkMaker(prob_matrix, bm_vector):
+    # Create graph
+    G = nx.DiGraph()
+
+    # Add nodes
+    num_nodes = prob_matrix.shape[0]
+    G.add_nodes_from(range(num_nodes))
+
+    # Add weighted edges, avoiding self-loops
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j and prob_matrix[i, j] > 0:
+                G.add_edge(i, j, weight=prob_matrix[i, j])
+
+    # Positioning (spring layout for better spacing)
+    pos = nx.spring_layout(G, seed=42)
+    plt.figure(figsize=(12, 12))  # Increase figure size
+
+    # **Node Coloring Based on bm_vector**
+    node_colors = [
+        (1 - abs(bm), 1, 1 - abs(bm)) if bm > 0 else (1, 1 - abs(bm), 1 - abs(bm))
+        for bm in bm_vector
+    ]  # Green for positive, red for negative
+
+    # Draw nodes with custom colors
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=500, edgecolors='black', linewidths=0.5)
+
+    # Get edge weights for coloring
+    edges = G.edges(data=True)
+    edge_weights = np.array([d['weight'] for (u, v, d) in edges])
+
+    # Normalize edge weights to [0, 1] for colormap
+    edge_colors = edge_weights / edge_weights.max() if edge_weights.max() > 0 else edge_weights
+
+    # Draw edges with colors based on weights
+    nx.draw_networkx_edges(
+        G, pos, edgelist=edges, width=[w * 5 for w in edge_weights], alpha=0.7,
+        edge_color=edge_colors, edge_cmap=plt.cm.Blues, edge_vmin=0, edge_vmax=1
+    )
+
+    # Draw labels
+    nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')
+
+    # Colorbar for edge intensity
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=0, vmax=1))
+    sm.set_array([])
+    plt.colorbar(sm, ax=plt.gca(), label="Edge Weight Intensity")
+
+    plt.title("Weighted Network Graph with Node and Edge Coloring")
+    plt.show()
