@@ -42,11 +42,13 @@ follow-the-leader/
 ├── notebooks/           # Jupyter notebooks for data analysis and visualization
 ├── src/
 │   ├── init.py
+|   ├── main.py          # Entry point for the simulation script
 │   ├── models.py        # Definitions for investor models and nodes
 │   ├── simulation.py    # Main simulation engine and time-step loop
 │   ├── network.py       # Functions for network updates and imitation logic
 │   ├── visualization.py # Plotting functions for network evolution and performance
 │   └── utils.py         # Utility functions (logging, configuration management, etc.)
+├── logs/                # Log files capturing simulation metrics and events
 └── tests/               # Unit tests for the various modules
 ```
 
@@ -101,7 +103,7 @@ follow-the-leader/
 
 - Enhanced Visualization:
     Develop interactive dashboards to monitor simulation dynamics in real time.
-    
+
 - Scalability Improvements:
     Optimize the simulation engine for larger networks and more complex scenarios, possibly exploring parallel processing options.
 
