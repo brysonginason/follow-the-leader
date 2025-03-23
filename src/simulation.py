@@ -2,9 +2,9 @@ import logging
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from models import Investor
-from utils import setup_logging
-from network import update_imitation
+from .models import Investor
+from .utils import setup_logging
+from .network import update_imitation
 
 
 def initialize_investors(num_investors):
