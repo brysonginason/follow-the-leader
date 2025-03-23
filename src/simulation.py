@@ -43,7 +43,7 @@ def run_simulation(num_investors=10, time_steps=50, alpha=0.01, beta=0.001):
         logging.info(f"Completed time step {t+1}")
 
     # Display the final investor imitation network.
-    plt.figure(figsize=(8,6))
+    plt.figure(figsize=(8, 6))
     pos = nx.spring_layout(G)
     edge_labels = nx.get_edge_attributes(G, 'weight')
     nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=500)
