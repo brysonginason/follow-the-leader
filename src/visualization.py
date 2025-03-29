@@ -29,8 +29,6 @@ def plot_investor_performance(investors, figsize=(10, 6), show_plot=False):
     ax.legend()
     ax.grid(True)
     fig.tight_layout()
-    if show_plot:
-        plt.show()
     return fig, ax
 
 
@@ -72,6 +70,4 @@ def plot_network(G, title="Investor Imitation Network", node_size=500, edge_widt
     fig.colorbar(nodes, ax=ax, label='Investor Performance')
     ax.axis('off')
     fig.tight_layout()
-    if show_plot:
-        plt.show()
     return fig, ax
