@@ -1,5 +1,4 @@
-# One iteration of the simulation
-n = 100 # Number of players
+n = 5 # Number of players
 
 # Parameters for capital
 S = 10000  # Total Initial Wealth
@@ -17,11 +16,19 @@ low = 0.1
 high = 2
 sigma = np.random.uniform(low, high, size=n)
 
-steps = 1  # Number of time steps
-bm_vector = brownian_motion(steps, n, mu, sigma)
-bm_vector = np.clip(bm_vector, -0.90, None) # Government intervention
-# print(np.round(bm_vector, 4))
+# networkInitial(n, wealth) # 0 Time step
+steps = 3  # Number of time steps
 
-prob_matrix = copyingProbability(wealth, bm_vector)
+for i in range(steps):
+  if i == 0:
+    bm_vector = brownian_motion(1, n, mu, sigma)
+    bm_vector = np.clip(bm_vector, -0.90, None) # Government intervention
 
-networkMaker(n, prob_matrix, bm_vector)
+    wealth = update_wealth(wealth, bm_vector)
+    prob_matrix = copyingProbability(wealth, bm_vector)
+    networkMaker(n, prob_matrix, bm_vector) #1 Time step
+
+  else:
+    bm_vector = brownian_motion(1, n, mu, sigma)
+    bm_vector = np.clip(bm_vector, -0.90, None) # Government intervention
+    wealth, prob_matrix = process_time_step_n(prob_matrix, bm_vector, wealth)
