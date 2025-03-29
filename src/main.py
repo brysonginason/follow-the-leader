@@ -1,26 +1,28 @@
-from simulation import run_simulation, visualize_network
+from simulation import run_simulation
+from visualization import plot_investor_performance, plot_network
 import matplotlib.pyplot as plt
 
 
-def main() -> None:
-    """
-    Main function to run the investor simulation and visualize the final network.
-    
-    This function sets the simulation parameters, runs the simulation, and then visualizes
-    the final investor imitation network. Errors during execution are caught and printed.
-    """
+def main():
     try:
-        # Set parameters for the simulation (or load from a config file)
-        num_investors: int = 10
-        time_steps: int = 50
-        alpha: float = 0.01
-        beta: float = 0.001
+        # Simulation parameters
+        num_investors = 10
+        time_steps = 5
+        alpha = 0.01
+        beta = 0.001
+        mu = 0.0         # Drift coefficient
+        sigma = 5.0      # Volatility coefficient
 
-        # Run the simulation and capture the network graph and investor list
-        G, investors = run_simulation(num_investors=num_investors, time_steps=time_steps, alpha=alpha, beta=beta)
+        # Run simulation with drift and volatility parameters
+        G, investors = run_simulation(num_investors, time_steps, alpha, beta, mu, sigma)
 
-        # Visualize the final investor imitation network
-        visualize_network(G)
+        # Plot without immediately showing
+        plot_investor_performance(investors, show_plot=False)
+        plot_network(G, show_plot=False)
+
+        # Show all plots at once
+        plt.show()
+
     except Exception as e:
         print(f"An error occurred during simulation: {e}")
 
