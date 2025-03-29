@@ -1,4 +1,5 @@
-from src.simulation import run_simulation
+from simulation import run_simulation
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -9,6 +10,8 @@ def main():
     beta = 0.001
 
     run_simulation(num_investors=num_investors, time_steps=time_steps, alpha=alpha, beta=beta)
+    # Plotting the results
+    plt.show()
 
 
 if __name__ == '__main__':
