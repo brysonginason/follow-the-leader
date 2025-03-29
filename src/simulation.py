@@ -28,7 +28,7 @@ def initialize_investors(num_investors: int) -> List[Investor]:
     """
     investors: List[Investor] = []
     for i in range(num_investors):
-        initial_capital = np.random.uniform(100, 1000)  # Random capital between 100 and 1000.
+        initial_capital = np.random.uniform(100, 10000)  # Random capital between 100 and 1000.
         investor = Investor(i, initial_capital)
         investors.append(investor)
         logging.info(f"Initialized Investor {i} with capital {initial_capital:.2f}")
@@ -54,7 +54,7 @@ def update_investors(investors: List[Investor], dt: float = 1, mu: float = 0, si
             logging.exception(f"Error updating investor {inv.id}: {str(e)}")
 
 
-def run_simulation(num_investors: int = 10, time_steps: int = 50, alpha: float = 0.01, beta: float = 0.001) -> Tuple[nx.DiGraph, List[Investor]]:
+def run_simulation(num_investors: int = 10, time_steps: int = 50, alpha: float = 0.01, beta: float = 0.001, mu: float = 0.0, sigma: float = 1.0) -> Tuple[nx.DiGraph, List[Investor]]:
     """
     Run the simulation of investor performance and imitation over a number of time steps.
 
@@ -63,6 +63,8 @@ def run_simulation(num_investors: int = 10, time_steps: int = 50, alpha: float =
         time_steps (int): Number of time steps in the simulation.
         alpha (float): Scaling factor for performance difference in imitation.
         beta (float): Scaling factor for capital difference in imitation.
+        mu (float): Drift coefficient for performance updates.
+        sigma (float): Volatility coefficient for performance updates.
 
     Returns:
         Tuple[nx.DiGraph, List[Investor]]: The final imitation network graph and list of investors.
@@ -86,7 +88,7 @@ def run_simulation(num_investors: int = 10, time_steps: int = 50, alpha: float =
     for t in iterator:
         logging.info(f"Starting time step {t+1}")
         try:
-            update_investors(investors)
+            update_investors(investors, dt=1, mu=mu, sigma=sigma)
             # Update imitation events and network structure.
             G = update_imitation(investors, G, alpha, beta)
             for inv in investors:
@@ -122,7 +124,9 @@ if __name__ == '__main__':
     parser.add_argument("--time_steps", type=int, default=50, help="Number of time steps to simulate.")
     parser.add_argument("--alpha", type=float, default=0.01, help="Alpha scaling factor for imitation.")
     parser.add_argument("--beta", type=float, default=0.001, help="Beta scaling factor for imitation.")
+    parser.add_argument("--mu", type=float, default=0.0, help="Drift coefficient for performance updates.")
+    parser.add_argument("--sigma", type=float, default=1.0, help="Volatility for the Brownian motion.")
     args = parser.parse_args()
 
-    G, investors = run_simulation(args.num_investors, args.time_steps, args.alpha, args.beta)
+    G, investors = run_simulation(args.num_investors, args.time_steps, args.alpha, args.beta, args.mu, args.sigma)
     visualize_network(G)
