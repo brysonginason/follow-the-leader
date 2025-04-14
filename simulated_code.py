@@ -3,27 +3,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 np.set_printoptions(linewidth=200)
 
-# Creates an n-size vector of random integers between low and high that sum to S.
-def random_partition(S, n, low, high):
-    """
-    Parameters:
-        S (int): Target sum.
-        n (int): Number of elements.
-        low (int): Minimum value per element
-    """
-    # Generate n random numbers
-    values = np.random.randint(low, high, size=n)
-
-    # Scale them to ensure they sum to S
-    values = (values / values.sum()) * S
-    values = np.round(values).astype(int)  # Convert to integers
-
-    # Adjust rounding errors to ensure exact sum
-    diff = S - values.sum()
-    values[np.random.choice(n)] += diff  # Add/subtract the difference to a random element
-
-    return values
-
 # Generates d independent Brownian motions of size n with drift, volatility
 def brownian_motion(steps, n, mu, sigma, dt=1):
     """
@@ -47,7 +26,6 @@ def brownian_motion(steps, n, mu, sigma, dt=1):
 def replace_diagonal_with_minus_one(matrix):
         np.fill_diagonal(matrix, -1)
         return matrix
-
 # Update wealth based on Brownian motion.
 def update_wealth(wealth, bm_vector):
     """
@@ -67,8 +45,8 @@ def copyingProbability(wealth, bm_vector, alpha=1, beta=1):
 
         for j in range(n):
             # Compute the probability for player i comparing with player j
-            diff_bm = bm_vector[j] - bm_vector[i]  # Difference in final BM values
-            diff_wealth = wealth_norm[j] - wealth_norm[i]  # Difference in wealth values
+            diff_bm = bm_vector[j].item() - bm_vector[i].item()  # Difference in final BM values
+            diff_wealth = wealth_norm[j].item() - wealth_norm[i].item()  # Difference in wealth values
 
             # Formula for probability
             probability_vec[j] = alpha * diff_bm + beta * diff_wealth
@@ -99,7 +77,7 @@ def networkInitial(n, wealth):
 
     # Positioning (spring layout for better spacing)
     pos = nx.spring_layout(G, seed=42)
-    plt.figure(figsize=(11, 11))  # Increase figure size
+    plt.figure(figsize=(14, 14))  # Increase figure size
 
     # Draw nodes with size based on wealth
     nx.draw_networkx_nodes(G, pos, node_size=wealth, node_color='white', edgecolors='black', linewidths=0.5)
@@ -110,26 +88,32 @@ def networkInitial(n, wealth):
     plt.title("Initial Network Graph with Node Sizes Based on Wealth")
     plt.show()
 
-def networkMaker(n, weightEdges, performanceVector):
-    # Create graph
+def networkMaker(n, weightEdges, performanceVector, iterationCount):
+    # Create directed graph
     G = nx.DiGraph()
-
-    # Add nodes
     G.add_nodes_from(range(n))
+    threshold = 0
 
-    # Add weighted edges, avoiding self-loops
+    # Add edges with weights
     for i in range(n):
         for j in range(n):
-            if i != j and weightEdges[i, j] > 0:
+            if i != j and weightEdges[i, j] > threshold:
                 G.add_edge(i, j, weight=weightEdges[i, j])
 
-    # Positioning (spring layout for better spacing)
-    pos = nx.spring_layout(G, seed=42)
-    plt.figure(figsize=(14, 14))  # Increase figure size
-
-    # Ensure bm_vector is a flattened numpy array and clip values
+    # Flatten and clip performance vector
     performanceVector = np.array(performanceVector).flatten()
     performanceVector = np.clip(performanceVector, None, 1)
+    wealth_norm = wealth / np.sum(wealth)
+
+    # Compute positions: radial layout with high-performance nodes near center
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    combined_score = 0.3 * performanceVector + 1 * wealth_norm
+    radii = 1.5 - combined_score # high values closer to center
+
+    pos = {
+        i: (radii[i] * np.cos(angles[i]), radii[i] * np.sin(angles[i]))
+        for i in range(n)
+    }
 
     # Node coloring based on bm_vector
     node_colors = [
@@ -137,31 +121,33 @@ def networkMaker(n, weightEdges, performanceVector):
         for bm in performanceVector
     ]  # Green for positive, red for negative
 
+    plt.figure(figsize=(14, 14))
+
     # Draw nodes with custom colors
     nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=wealth, edgecolors='black', linewidths=0.5)
 
-    # Get edge weights for coloring
+    # Edge properties
     edges = G.edges(data=True)
     edge_weights = np.array([d['weight'] for (u, v, d) in edges])
-
-    # Normalize edge weights to [0, 1] for colormap
     edge_colors = edge_weights / edge_weights.max() if edge_weights.max() > 0 else edge_weights
 
-    # Draw edges with colors based on weights
+    # Draw edges
     nx.draw_networkx_edges(
-        G, pos, edgelist=edges, width=[w * 5 for w in edge_weights], alpha=0.7,
-        edge_color=edge_colors, edge_cmap=plt.cm.Blues, edge_vmin=0, edge_vmax=1
+        G, pos, edgelist=edges, width=[w * 5 for w in edge_weights],
+        alpha=0.7, edge_color=edge_colors,
+        edge_cmap=plt.cm.Blues, edge_vmin=0, edge_vmax=1
     )
 
-    # Draw labels
-    nx.draw_networkx_labels(G, pos, font_size=12, font_weight='bold')
+    # Labels
+    nx.draw_networkx_labels(G, pos, font_size=10, font_weight='bold')
 
-    # Colorbar for edge intensity
+    # Colorbar for edge weights
     sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=0, vmax=1))
     sm.set_array([])
     plt.colorbar(sm, ax=plt.gca(), label="Edge Weight Intensity")
 
-    plt.title("Weighted Network Graph with Node and Edge Coloring")
+    plt.title("Weighted Network Graph at t = " + str(iterationCount + 1))
+    plt.axis('off')
     plt.show()
 
 def process_time_step_n(prob_matrix, performanceVec, wealth):
@@ -180,6 +166,5 @@ def process_time_step_n(prob_matrix, performanceVec, wealth):
     wealth = update_wealth(wealth, phase2.reshape(n, 1))
     prob_matrix = copyingProbability(wealth, phase2)
 
-    networkMaker(n, prob_matrix, bm_vector)  # One time step
-
     return wealth, prob_matrix
+
