@@ -35,6 +35,28 @@ def update_wealth(wealth, bm_vector):
     """
     return wealth * (1 + bm_vector[:, -1])
 
+def topk_with_forced_index(prob_vector, i):
+    n = len(prob_vector)
+    k = max(5, int(np.ceil(n / 100)))
+
+    # Get indices of top-k values
+    topk_indices = np.argpartition(prob_vector, -k)[-k:]
+
+    # Make sure index i is included
+    # if i not in topk_indices:
+        # topk_indices = np.append(topk_indices, i)
+
+    # Create filtered vector
+    filtered = np.zeros_like(prob_vector)
+    filtered[topk_indices] = prob_vector[topk_indices]
+
+    # Renormalize
+    total = np.sum(filtered)
+    if total > 0:
+        filtered /= total
+
+    return filtered
+
 def copyingProbability(wealth, bm_vector, alpha=0.3, beta=1):
     n = len(wealth)  # Number of players
     probability_matrix = np.zeros((n, n))  # Initialize the probability matrix
@@ -62,6 +84,8 @@ def copyingProbability(wealth, bm_vector, alpha=0.3, beta=1):
         # Normalize the vector based on the total
         if total > 0:  # Avoid division by zero
             probability_vec /= total
+
+        probability_vec = topk_with_forced_index(probability_vec, i)
 
         # Update the probability matrix
         probability_matrix[i, :] = probability_vec
@@ -168,4 +192,3 @@ def process_time_step_n(prob_matrix, performanceVec, wealth, alpha = 0.3, beta =
     prob_matrix = copyingProbability(wealth, phase2, alpha, beta)
 
     return wealth, prob_matrix
-
