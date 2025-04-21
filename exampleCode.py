@@ -30,7 +30,9 @@ for i in range(steps):
         wealth = update_wealth(wealth, bm_vector)
         prob_matrix = copyingProbability(wealth, bm_vector, alpha, beta)
     else:
-        wealth, prob_matrix = process_time_step_n(prob_matrix, bm_vector, wealth, alpha, beta)
+        wealth, prob_matrix = process_time_step_n(
+            prob_matrix, bm_vector, wealth, alpha, beta
+        )
 
     # 3) evolve network
     networkMaker(n, prob_matrix, bm_vector, i, alpha, beta)
