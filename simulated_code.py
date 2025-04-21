@@ -35,7 +35,7 @@ def update_wealth(wealth, bm_vector):
     """
     return wealth * (1 + bm_vector[:, -1])
 
-def copyingProbability(wealth, bm_vector, alpha=1, beta=1):
+def copyingProbability(wealth, bm_vector, alpha=0.3, beta=1):
     n = len(wealth)  # Number of players
     probability_matrix = np.zeros((n, n))  # Initialize the probability matrix
     wealth_norm = wealth / np.sum(wealth)
@@ -56,12 +56,12 @@ def copyingProbability(wealth, bm_vector, alpha=1, beta=1):
 
         # Calculate the total: sum of vector + number of zeros in the vector
         zero_count =  np.count_nonzero(probability_vec == 0)
-        total = np.sum(probability_vec) + zero_count
+        probability_vec[i] = zero_count / n
+        total = np.sum(probability_vec)
 
         # Normalize the vector based on the total
         if total > 0:  # Avoid division by zero
             probability_vec /= total
-            probability_vec[i] = zero_count / total
 
         # Update the probability matrix
         probability_matrix[i, :] = probability_vec
@@ -88,7 +88,7 @@ def networkInitial(n, wealth):
     plt.title("Initial Network Graph with Node Sizes Based on Wealth")
     plt.show()
 
-def networkMaker(n, weightEdges, performanceVector, iterationCount):
+def networkMaker(n, weightEdges, performanceVector, iterationCount, alpha = 0.3, beta =1):
     # Create directed graph
     G = nx.DiGraph()
     G.add_nodes_from(range(n))
@@ -107,8 +107,9 @@ def networkMaker(n, weightEdges, performanceVector, iterationCount):
 
     # Compute positions: radial layout with high-performance nodes near center
     angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-    combined_score = 0.3 * performanceVector + 1 * wealth_norm
-    radii = 1.5 - combined_score # high values closer to center
+    combined_score = alpha * performanceVector + beta * wealth_norm
+    combined_score = (combined_score - combined_score.min()) / (combined_score.max() - combined_score.min())
+    radii = 0.5 + (1.0 - combined_score)  # radius now ranges from 0.5 to 1.5
 
     pos = {
         i: (radii[i] * np.cos(angles[i]), radii[i] * np.sin(angles[i]))
@@ -150,7 +151,7 @@ def networkMaker(n, weightEdges, performanceVector, iterationCount):
     plt.axis('off')
     plt.show()
 
-def process_time_step_n(prob_matrix, performanceVec, wealth):
+def process_time_step_n(prob_matrix, performanceVec, wealth, alpha = 0.3, beta = 1):
 
     system = replace_diagonal_with_minus_one(prob_matrix)
 
@@ -164,7 +165,7 @@ def process_time_step_n(prob_matrix, performanceVec, wealth):
 
     # Updates everything
     wealth = update_wealth(wealth, phase2.reshape(n, 1))
-    prob_matrix = copyingProbability(wealth, phase2)
+    prob_matrix = copyingProbability(wealth, phase2, alpha, beta)
 
     return wealth, prob_matrix
 
