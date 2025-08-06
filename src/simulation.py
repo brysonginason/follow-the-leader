@@ -1,132 +1,191 @@
 import argparse
-import logging
 import numpy as np
-import networkx as nx
 import matplotlib.pyplot as plt
-from models import Investor
-from utils import setup_logging
-from network import update_imitation
-from typing import List, Tuple
+from .models import brownian_motion, update_wealth
+from .network import copying_probability, process_time_step
+from .visualization import network_maker, plot_influence_over_time, network_initial_visualization
+from .utils import setup_logging
 
-# Try importing tqdm for a progress bar; if not available, proceed without it.
-try:
-    from tqdm import tqdm
-    progress_bar_available = True
-except ImportError:
-    progress_bar_available = False
+np.set_printoptions(linewidth=200)
 
 
-def initialize_investors(num_investors: int) -> List[Investor]:
+def run_advanced_simulation(n=50, steps=1000, alpha=1, beta=0, 
+                           wealth_range=(250, 1000), mu_range=(-0.5, 0.5), 
+                           sigma_range=(0.1, 0.2), government_intervention=-0.90,
+                           visualize_at=None, track_influence=True, seed=None):
     """
-    Initialize a list of investors with random capital between 100 and 1000.
-
+    Run the advanced copycat trading simulation based on sparta.ipynb implementation.
+    
     Parameters:
-        num_investors (int): Number of investors to initialize.
-
+        n (int): Number of investors/players.
+        steps (int): Number of time steps to simulate.
+        alpha (float): Performance weight parameter.
+        beta (float): Wealth weight parameter.
+        wealth_range (tuple): Range for initial wealth (low, high).
+        mu_range (tuple): Range for drift coefficients (low, high).
+        sigma_range (tuple): Range for volatility coefficients (low, high).
+        government_intervention (float): Clipping threshold for negative performance.
+        visualize_at (list): Time steps to create network visualizations.
+        track_influence (bool): Whether to track influence over time.
+        seed (int): Random seed for reproducibility.
+    
     Returns:
-        List[Investor]: A list of Investor objects.
+        dict: Results containing wealth, probability matrix, influences, and parameters.
     """
-    investors: List[Investor] = []
-    for i in range(num_investors):
-        initial_capital = np.random.uniform(100, 10000)  # Random capital between 100 and 1000.
-        investor = Investor(i, initial_capital)
-        investors.append(investor)
-        logging.info(f"Initialized Investor {i} with capital {initial_capital:.2f}")
-    return investors
+    if seed is not None:
+        np.random.seed(seed)
+    
+    # Initialize parameters
+    wealth = np.random.randint(low=wealth_range[0], high=wealth_range[1], size=n)
+    mu = np.random.uniform(mu_range[0], mu_range[1], size=n)
+    sigma = np.random.uniform(sigma_range[0], sigma_range[1], size=n)
+    
+    if visualize_at is None:
+        visualize_at = {0, 24, 49, 99, 499, steps-1}
+    else:
+        visualize_at = set(visualize_at)
+    
+    influences = [] if track_influence else None
+    prob_matrix = None
+    
+    print(f"Starting simulation: n={n}, steps={steps}, alpha={alpha}, beta={beta}")
+    
+    # Show initial network if requested
+    if 0 in visualize_at:
+        network_initial_visualization(n, wealth)
+    
+    for i in range(steps):
+        # Generate Brownian motion for this step
+        bm_vector = brownian_motion(1, n, mu, sigma)
+        bm_vector = np.clip(bm_vector, government_intervention, None)
+        
+        if i == 0:
+            # First time step
+            wealth = update_wealth(wealth, bm_vector)
+            prob_matrix = copying_probability(wealth, bm_vector, alpha, beta)
+        else:
+            # Subsequent time steps using matrix operations
+            wealth, prob_matrix = process_time_step(prob_matrix, bm_vector, wealth, alpha, beta)
+        
+        # Track influence of most copied node
+        if track_influence:
+            column_sums = prob_matrix.sum(axis=0)
+            max_influence = column_sums.max() / n
+            influences.append(max_influence)
+        
+        # Print column sums at specific intervals
+        if i in visualize_at and i > 0:
+            column_sums = prob_matrix.sum(axis=0)
+            rounded_sums = np.round(column_sums, 3)
+            print(f"\nTime step {i}:")
+            for idx, val in enumerate(rounded_sums):
+                print(f"Node {idx}: {val}")
+        
+        # Create network visualizations
+        if i in visualize_at:
+            network_maker(n, prob_matrix, bm_vector[:, -1], i, alpha, beta, wealth)
+    
+    # Plot influence over time if tracked
+    if track_influence and influences:
+        plot_influence_over_time(influences)
+    
+    return {
+        'wealth': wealth,
+        'probability_matrix': prob_matrix,
+        'influences': influences,
+        'parameters': {
+            'n': n, 'steps': steps, 'alpha': alpha, 'beta': beta,
+            'mu': mu, 'sigma': sigma, 'wealth_range': wealth_range
+        }
+    }
 
 
-def update_investors(investors: List[Investor], dt: float = 1, mu: float = 0, sigma: float = 1) -> None:
+def compare_scenarios():
     """
-    Update each investor's performance using a simple Brownian motion model.
-
-    Parameters:
-        investors (List[Investor]): List of investor objects.
-        dt (float): Time step for the update.
-        mu (float): Drift coefficient.
-        sigma (float): Volatility coefficient.
+    Compare different alpha/beta parameter combinations as shown in sparta.ipynb.
     """
-    for inv in investors:
-        try:
-            prev_perf = inv.performance
-            inv.update_performance(dt, mu, sigma)
-            logging.info(f"Investor {inv.id} updated performance from {prev_perf:.2f} to {inv.performance:.2f}")
-        except Exception as e:
-            logging.exception(f"Error updating investor {inv.id}: {str(e)}")
+    scenarios = [
+        {'alpha': 1, 'beta': 0, 'name': 'Performance Only'},
+        {'alpha': 1, 'beta': 1, 'name': 'Performance + Wealth'},
+        {'alpha': 1, 'beta': 2, 'name': 'Wealth Dominant'},
+        {'alpha': 1, 'beta': 500, 'name': 'Extreme Wealth Focus'}
+    ]
+    
+    results = {}
+    
+    for scenario in scenarios:
+        print(f"\n{'='*50}")
+        print(f"Running scenario: {scenario['name']}")
+        print(f"Alpha: {scenario['alpha']}, Beta: {scenario['beta']}")
+        print(f"{'='*50}")
+        
+        result = run_advanced_simulation(
+            n=50, 
+            steps=1000,
+            alpha=scenario['alpha'],
+            beta=scenario['beta'],
+            seed=42  # Same seed for fair comparison
+        )
+        
+        results[scenario['name']] = result
+    
+    return results
 
 
-def run_simulation(num_investors: int = 10, time_steps: int = 50, alpha: float = 0.01, beta: float = 0.001, mu: float = 0.0, sigma: float = 1.0) -> Tuple[nx.DiGraph, List[Investor]]:
+def analyze_drift_influence():
     """
-    Run the simulation of investor performance and imitation over a number of time steps.
-
-    Parameters:
-        num_investors (int): Number of investors to simulate.
-        time_steps (int): Number of time steps in the simulation.
-        alpha (float): Scaling factor for performance difference in imitation.
-        beta (float): Scaling factor for capital difference in imitation.
-        mu (float): Drift coefficient for performance updates.
-        sigma (float): Volatility coefficient for performance updates.
-
-    Returns:
-        Tuple[nx.DiGraph, List[Investor]]: The final imitation network graph and list of investors.
+    Analyze which investors have the highest drift coefficients.
     """
-    # Set a random seed for reproducibility
     np.random.seed(42)
-
-    setup_logging()
-    logging.info("Starting simulation...")
-    investors = initialize_investors(num_investors)
-
-    # Create a directed graph to capture imitation relationships.
-    G = nx.DiGraph()
-    for inv in investors:
-        G.add_node(inv.id, performance=inv.performance)
-
-    iterator = range(time_steps)
-    if progress_bar_available:
-        iterator = tqdm(iterator, desc="Simulating time steps")
-
-    for t in iterator:
-        logging.info(f"Starting time step {t+1}")
-        try:
-            update_investors(investors, dt=1, mu=mu, sigma=sigma)
-            # Update imitation events and network structure.
-            G = update_imitation(investors, G, alpha, beta)
-            for inv in investors:
-                G.nodes[inv.id]['performance'] = inv.performance
-            logging.info(f"Completed time step {t+1}")
-        except Exception as e:
-            logging.exception(f"Error during simulation at time step {t+1}: {str(e)}")
-
-    logging.info("Simulation completed.")
-    return G, investors
+    n = 50
+    mu = np.random.uniform(-0.5, 0.5, size=n)
+    
+    drift = np.round(mu, 4)
+    
+    # Find max and second max
+    id_max = np.argmax(drift)
+    val_max = drift[id_max]
+    
+    masked = drift.copy()
+    masked[id_max] = -np.inf
+    second_idx = np.argmax(masked)
+    second_val = drift[second_idx]
+    
+    print(f"Highest drift - Index: {id_max}, Value: {val_max}")
+    print(f"Second highest drift - Index: {second_idx}, Value: {second_val}")
+    print("\nAll drift coefficients:")
+    for idx, val in enumerate(drift):
+        print(f"Node {idx}: {val}")
+    
+    return drift
 
 
-def visualize_network(G: nx.DiGraph) -> None:
-    """
-    Visualize the final investor imitation network.
-
-    Parameters:
-        G (nx.DiGraph): The network graph representing imitation relationships.
-    """
-    plt.figure(figsize=(8, 6))
-    pos = nx.spring_layout(G, seed=42)
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=500)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-    plt.title("Investor Imitation Network")
-    plt.show()
-    plt.close()
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Run the investor simulation.")
-    parser.add_argument("--num_investors", type=int, default=10, help="Number of investors to simulate.")
-    parser.add_argument("--time_steps", type=int, default=50, help="Number of time steps to simulate.")
-    parser.add_argument("--alpha", type=float, default=0.01, help="Alpha scaling factor for imitation.")
-    parser.add_argument("--beta", type=float, default=0.001, help="Beta scaling factor for imitation.")
-    parser.add_argument("--mu", type=float, default=0.0, help="Drift coefficient for performance updates.")
-    parser.add_argument("--sigma", type=float, default=1.0, help="Volatility for the Brownian motion.")
+def main():
+    """Main function to run simulations with command line arguments."""
+    parser = argparse.ArgumentParser(description="Run advanced copycat trading simulation")
+    parser.add_argument("--n", type=int, default=50, help="Number of investors")
+    parser.add_argument("--steps", type=int, default=1000, help="Number of time steps")
+    parser.add_argument("--alpha", type=float, default=1, help="Performance weight")
+    parser.add_argument("--beta", type=float, default=0, help="Wealth weight")
+    parser.add_argument("--compare", action="store_true", help="Run scenario comparison")
+    parser.add_argument("--analyze-drift", action="store_true", help="Analyze drift coefficients")
+    parser.add_argument("--seed", type=int, help="Random seed")
+    
     args = parser.parse_args()
+    
+    if args.compare:
+        compare_scenarios()
+    elif args.analyze_drift:
+        analyze_drift_influence()
+    else:
+        run_advanced_simulation(
+            n=args.n,
+            steps=args.steps,
+            alpha=args.alpha,
+            beta=args.beta,
+            seed=args.seed
+        )
 
-    G, investors = run_simulation(args.num_investors, args.time_steps, args.alpha, args.beta, args.mu, args.sigma)
-    visualize_network(G)
+
+if __name__ == "__main__":
+    main()
