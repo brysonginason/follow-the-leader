@@ -50,7 +50,7 @@ python src/simulation.py --compare
 python src/simulation.py --analyze-drift
 
 # Original optimal implementation
-jupyter notebook sparta.ipynb
+jupyter notebook notebooks/sparta.ipynb
 ```
 
 ## Simulation Parameters
@@ -100,7 +100,8 @@ follow-the-leader/
 ├── README.md                 # This file
 ├── CLAUDE.md                 # Developer guidance for Claude Code
 ├── requirements.txt          # Python dependencies  
-├── sparta.ipynb             # Original optimal implementation
+├── notebooks/
+│   └── sparta.ipynb         # Original optimal implementation
 ├── src/
 │   ├── main.py              # Entry point with demonstrations
 │   ├── simulation.py        # Advanced simulation engine
@@ -111,7 +112,6 @@ follow-the-leader/
 ├── data/
 │   └── dummy_data.csv       # Sample dataset
 └── .gitignore               # Git ignore rules
-
 ```
 
 ## Research Applications
