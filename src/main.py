@@ -1,31 +1,42 @@
-from simulation import run_simulation
-from visualization import plot_investor_performance, plot_network
+#!/usr/bin/env python3
+"""
+Main entry point for the Follow the Leader copycat trading simulation.
+"""
+from simulation import run_advanced_simulation, compare_scenarios, analyze_drift_influence
 import matplotlib.pyplot as plt
 
 
 def main():
-    try:
-        # Simulation parameters
-        num_investors = 10
-        time_steps = 5
-        alpha = 0.01
-        beta = 0.001
-        mu = 0.0         # Drift coefficient
-        sigma = 5.0      # Volatility coefficient
+    """
+    Main function demonstrating different simulation capabilities.
+    """
+    print("Follow the Leader: Copycat Trading Simulation")
+    print("=" * 50)
+    
+    # Run a basic simulation
+    print("\n1. Running basic simulation...")
+    result = run_advanced_simulation(
+        n=20, 
+        steps=100, 
+        alpha=1, 
+        beta=0,
+        visualize_at=[0, 24, 49, 99],
+        seed=42
+    )
+    
+    print(f"\nSimulation completed!")
+    print(f"Final wealth range: {result['wealth'].min():.2f} - {result['wealth'].max():.2f}")
+    print(f"Average influence: {sum(result['influences'])/len(result['influences']):.3f}")
+    
+    # Demonstrate scenario comparison
+    print("\n2. Running scenario comparison...")
+    compare_results = compare_scenarios()
+    
+    print("\n3. Analyzing drift influence...")
+    drift_coeffs = analyze_drift_influence()
+    
+    print("\nAll demonstrations completed!")
 
-        # Run simulation with drift and volatility parameters
-        G, investors = run_simulation(num_investors, time_steps, alpha, beta, mu, sigma)
 
-        # Plot without immediately showing
-        plot_investor_performance(investors, show_plot=False)
-        plot_network(G, show_plot=False)
-
-        # Show all plots at once
-        plt.show()
-
-    except Exception as e:
-        print(f"An error occurred during simulation: {e}")
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
