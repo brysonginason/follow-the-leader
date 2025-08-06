@@ -28,7 +28,7 @@ ENV/
 env.bak/
 venv.bak/
 
-# IDE
+# IDE and Editor files
 .vscode/
 .idea/
 *.swp
@@ -38,24 +38,23 @@ venv.bak/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
-# PyCharm
-.idea/
-
-# Logs
-*.log
-logs/
-
-# Data files (keep structure, ignore large datasets)
-data/*.csv
+# Data files (ignore all data except sample)
+data/
+!data/
 !data/dummy_data.csv
 
-# Results and outputs
+# Results and output files
 results/
 output/
+logs/
+*.log
+
+# Generated plots and visualizations
 *.png
 *.jpg
 *.jpeg
 *.pdf
+*.svg
 
 # OS generated files
 .DS_Store
@@ -66,6 +65,15 @@ output/
 ehthumbs.db
 Thumbs.db
 
-# Documentation (keep CLAUDE.md and README.md)
-CLAUDE.md
-!README.md
+# Documentation build files
+docs/_build/
+
+# Temporary files
+*.tmp
+*.temp
+
+# PyCharm specific
+.idea/
+
+# VSCode specific
+.vscode/
